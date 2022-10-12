@@ -1,15 +1,20 @@
 import logo from './logo.svg';
+
 import './App.css';
-import { Circle } from "react-components-test";
+import "react-components-test/dist/style.css"
+import { Circle2 } from "react-components-test";
+import { Circle } from "react-components-test/circle";
 
 function App() {
   return (
     <div className="App">
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
-        <p>
+        <p
+        >
           Edit <code>src/App.js</code> and save to reload.
         </p>
+        <Circle2 />
         <Circle />
         <a
           className="App-link"
