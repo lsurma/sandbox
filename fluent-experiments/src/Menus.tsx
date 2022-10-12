@@ -211,6 +211,31 @@ const useMenu = (props : UseMenuProps) => {
   }
 }
 
+const useAction = () => {
+  const [inProgress, setInProgress] = useState(false);
+
+  return {
+    inProgress,
+
+    invoke : async (callback : () => any) => {
+      try {
+        if(inProgress) {
+          return;
+        }
+
+        setInProgress(true);
+
+        await callback();
+      } catch (e) {
+        alert(e!.toString());
+      } finally {
+        setInProgress(false);
+      }
+
+    }
+  }
+}
+
 
 const MenusPage = () => {
   const [value, setValue] = useState<number>(0);
@@ -225,17 +250,32 @@ const MenusPage = () => {
   });
 
   const deleteConfirm = useConfirmation();
+  const actionHandler = useAction();
 
   const action = () => {
-    deleteConfirm.confirm(async () => {
+     actionHandler.invoke(async () => {
+      console.log("start");
       await new Promise((resolve, reject) => {
-        setTimeout(resolve, 5000);
+        setTimeout(() => reject(new Error("err")), 5000);
       })
       console.log("done");
-    })
+    });
+
+    // deleteConfirm.confirm(async () => {
+    //   await actionHandler.invoke(async () => {
+    //     console.log("start");
+    //     await new Promise((resolve, reject) => {
+    //       setTimeout(() => reject(new Error("err")), 5000);
+    //     })
+    //     console.log("done");
+    //   });
+    // })
+
+
   };
 
 console.log("menus page render");
+  console.log(actionHandler.inProgress);
 
   return <>
     <button onClick={() => setValue(value + 1)}>+ {value}</button>
