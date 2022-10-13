@@ -1,6 +1,6 @@
 import { atom, RecoilRoot, useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
 import { DefaultButton, Dialog, DialogFooter, DialogType, Panel, PanelType, PrimaryButton } from "@fluentui/react";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 interface Menu {
   id : string;
@@ -236,6 +236,63 @@ const useAction = () => {
   }
 }
 
+interface FormController
+{
+  inProgress : boolean;
+  setData : (data : any) => void
+  submit : () => void
+}
+
+const useFormController = () : FormController => {
+  let storeRef = useRef({});
+  const [inProgress, setInProgress] = useState(false);
+
+  return {
+    inProgress,
+
+    setData : (data : any) => {
+      storeRef.current = data;
+    },
+
+    submit : async () => {
+      console.log("start");
+      setInProgress(true);
+      await new Promise((resolve) => {
+        console.log(storeRef.current);
+
+        setTimeout(resolve, 5000);
+      })
+      setInProgress(false);
+      console.log("end");
+    }
+  }
+}
+
+
+const Form = (props : { controller ?: FormController}) => {
+  const [value, setValue] = useState("");
+
+  const submit = () => {
+    if(props.controller) {
+      props.controller.submit();
+    }
+  }
+
+
+  return (<div style={{ marginTop : 20 }}>
+    form with actions ({value})<br />
+    <input value={value} onChange={(e) => {
+      setValue(e.currentTarget.value)
+      props.controller?.setData({
+        value : e.currentTarget.value
+      })
+    }}/>
+    <br />
+    <button disabled={props.controller?.inProgress} onClick={submit}>submit form form</button>
+
+  </div>)
+}
+
 
 const MenusPage = () => {
   const [value, setValue] = useState<number>(0);
@@ -275,7 +332,8 @@ const MenusPage = () => {
   };
 
 console.log("menus page render");
-  console.log(actionHandler.inProgress);
+
+  const formController = useFormController();
 
   return <>
     <button onClick={() => setValue(value + 1)}>+ {value}</button>
@@ -283,6 +341,9 @@ console.log("menus page render");
     <button onClick={() => mainMenu.toggle()}>main</button>
 
     <button onClick={action}>confirm action</button>
+
+    <Form controller={formController} />
+    <button disabled={formController.inProgress} onClick={formController.submit}>submit from outside</button>
 
   </>
 }
