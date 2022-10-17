@@ -1,11 +1,16 @@
 import { atom, RecoilRoot, useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
 import { DefaultButton, Dialog, DialogFooter, DialogType, Panel, PanelType, PrimaryButton } from "@fluentui/react";
 import { useEffect, useId, useRef, useState } from "react";
+import * as React from "react";
 
 interface Menu {
   id : string;
   isOpen : boolean;
+  isBlocking : boolean;
+  lastVisibilityStateChange ?: number;
   content ?: (() => any) | JSX.Element | React.ReactNode;
+  onDismiss : (ev?: React.SyntheticEvent<HTMLElement> | KeyboardEvent) => void;
+
 }
 
 interface ConfirmationDialog
@@ -109,23 +114,11 @@ export const DialogsRoot = () => {
 export const MenuRoot = () => {
   const [items, setItems] = useRecoilState(menus);
 
-  const dismiss = (id : string) => {
-    setItems((items) => {
-      const item = {...items[id]};
-      item.isOpen = false;
-      return {
-        ...items,
-        [id] : item
-      }
-
-    })
-  }
-
   return <>
     {Object.keys(items).map((id) => {
       const item = items[id];
 
-      return <Panel onDismiss={() => dismiss(id)} isBlocking={false} key={item.id} isOpen={item.isOpen} type={PanelType.medium}>
+      return <Panel onDismiss={item.onDismiss} isBlocking={item.isBlocking} key={item.id} isOpen={item.isOpen} type={PanelType.medium} isLightDismiss>
         {typeof item.content === "function" ? item.content() : item.content}
       </Panel>
     })}
@@ -134,7 +127,9 @@ export const MenuRoot = () => {
 
 interface UseMenuProps
 {
+  id ?: string;
   content ?: (() => any) | JSX.Element | React.ReactNode;
+  isBlocking : boolean;
 }
 
 const useConfirmation = () => {
@@ -177,6 +172,31 @@ const useMenu = (props : UseMenuProps) => {
   const setItems = useSetRecoilState(menus);
   const id = useId();
 
+  const dismiss = (id : string) => {
+    setItems((items) => {
+      const item = {...items[id]};
+
+      // Check if given item was opened last to be allowed to dismiss
+      const max = Object.keys(items).reduce((acc, i) => {
+        const checkedItem : Menu = items[i];
+
+        return (checkedItem.isOpen && checkedItem.lastVisibilityStateChange && checkedItem.lastVisibilityStateChange >= acc ? checkedItem.lastVisibilityStateChange : acc) as number;
+      }, 0)
+
+      if(!item.lastVisibilityStateChange || item.lastVisibilityStateChange < max) {
+        // Prevent dismiss
+        return items;
+      }
+
+
+      item.isOpen = false;
+      return {
+        ...items,
+        [id] : item
+      }
+    })
+  }
+
   useEffect(() => {
     // Register menu
     setItems((items) => {
@@ -184,9 +204,13 @@ const useMenu = (props : UseMenuProps) => {
       return {
         ...items,
         [id] : {
-          id : id,
+          id : props?.id ?? id,
           isOpen : false,
-          content : props?.content
+          content : props?.content,
+          isBlocking : props.isBlocking,
+          onDismiss : (ev) => {
+            dismiss(id);
+          }
         }
       }
     })
@@ -197,6 +221,7 @@ const useMenu = (props : UseMenuProps) => {
       setItems((items) => {
         const item = {...items[id]};
         item.isOpen = !item.isOpen ;
+        item.lastVisibilityStateChange = (new Date()).getTime();
 
         if(content) {
           item.content = content;
@@ -296,13 +321,29 @@ const Form = (props : { controller ?: FormController}) => {
 
 const MenusPage = () => {
   const [value, setValue] = useState<number>(0);
-  const otherMenu = useMenu({
-    content : <>other menu</>
+  const secMenu = useMenu({
+    id : "sec",
+
+    isBlocking : true,
+    content : <>
+      <button onClick={() => third.toggle()}>third</button>
+    </>
   });
 
   const mainMenu = useMenu({
+    id : "main",
+    isBlocking : false,
     content : <>
-      <button onClick={() => otherMenu.toggle()}>otherMenu</button>
+      <button onClick={() => secMenu.toggle()}>open second menu</button>
+    </>
+  });
+
+
+  const third = useMenu({
+    id : "third",
+    isBlocking : false,
+    content : <>
+     third
     </>
   });
 
@@ -338,7 +379,7 @@ console.log("menus page render");
   return <>
     <button onClick={() => setValue(value + 1)}>+ {value}</button>
 
-    <button onClick={() => mainMenu.toggle()}>main</button>
+    <button onClick={() => mainMenu.toggle()}>Open main</button>
 
     <button onClick={action}>confirm action</button>
 
