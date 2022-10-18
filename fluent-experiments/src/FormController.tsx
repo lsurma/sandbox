@@ -103,7 +103,6 @@ export const FormTest = () => {
         return <>
           <PrimaryButton disabled={editorForm.inProgress} text={"Save"} onClick={outerSave} />
           <DefaultButton disabled={editorForm.inProgress} text={"Discard changes"} onClick={editorForm.discard} />
-
         </>
       }}
     >
