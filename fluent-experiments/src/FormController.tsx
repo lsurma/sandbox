@@ -1,22 +1,30 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Panel, PanelType, PrimaryButton, TextField } from "@fluentui/react";
+import { DefaultButton, Panel, PanelType, PrimaryButton, TextField } from "@fluentui/react";
 
 interface FormController
 {
   inProgress : boolean;
   submit : () => PromiseLike<any>;
-  registerSubmit : (callback : () => PromiseLike<any>) => void;
+  discard : () => PromiseLike<any>;
+  register : (submitCallback : () => PromiseLike<any>, discardCallback ?: () => PromiseLike<any>) => void;
 }
 
 const useFormController = () : FormController => {
   const submitCallbackRef = useRef<null | (() => PromiseLike<any>)>(null)
+  const discardCallbackRef = useRef<null | (() => PromiseLike<any>)>(null)
+
   const [inProgress, setInProgress] = useState(false);
 
   const api = {
     inProgress,
 
-    registerSubmit : (callback : () => PromiseLike<any>) => {
-      submitCallbackRef.current = callback;
+    register : (submitCallback : () => PromiseLike<any>, discardCallback ?: () => PromiseLike<any>) => {
+      submitCallbackRef.current = submitCallback;
+      discardCallbackRef.current = discardCallback ? discardCallback : null;
+    },
+
+    discard : async () => {
+      discardCallbackRef.current && discardCallbackRef.current();
     },
 
     submit : async () => {
@@ -61,7 +69,9 @@ const Form = (props : { formController ?: FormController }) => {
 
   useEffect(() => {
     // Attach submit callback to form controller
-    props.formController && props.formController.registerSubmit(submitFunction);
+    props.formController && props.formController.register(submitFunction, async () => {
+      setValue("");
+    });
   }, [value])
 
   const submitInProgress = props.formController ? props.formController.inProgress : inProgress;
@@ -92,6 +102,8 @@ export const FormTest = () => {
       onRenderFooterContent={() => {
         return <>
           <PrimaryButton disabled={editorForm.inProgress} text={"Save"} onClick={outerSave} />
+          <DefaultButton disabled={editorForm.inProgress} text={"Discard changes"} onClick={editorForm.discard} />
+
         </>
       }}
     >
