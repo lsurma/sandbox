@@ -2,6 +2,7 @@ import { useState } from 'react';
 import './App.css';
 import { DetailsList, SelectionMode, Selection, registerIcons, initializeIcons } from "@fluentui/react";
 import { Menus } from "./Menus";
+import { FormTest } from "./FormController";
 
 const genItems = () => {
   return Array(10000).fill(1).map((v, i) => ({ key : i, id : i, title : i}))
@@ -11,6 +12,8 @@ const genItems = () => {
 initializeIcons();
 
 function App() {
+  return <FormTest />
+
   return <Menus />
 
   const [items, setItems] = useState(() => genItems());
