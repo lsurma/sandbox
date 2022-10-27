@@ -3,6 +3,7 @@ import './App.css';
 import { DetailsList, SelectionMode, Selection, registerIcons, initializeIcons } from "@fluentui/react";
 import { Menus } from "./Menus";
 import { FormTest } from "./FormController";
+import { SyncedList } from "./SyncedList";
 
 const genItems = () => {
   return Array(10000).fill(1).map((v, i) => ({ key : i, id : i, title : i}))
@@ -12,6 +13,7 @@ const genItems = () => {
 initializeIcons();
 
 function App() {
+  return <SyncedList />
   return <FormTest />
 
   return <Menus />
