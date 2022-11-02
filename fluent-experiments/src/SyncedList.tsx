@@ -122,11 +122,15 @@ class PersSel<TItem = TItemWithId> implements ISelection<TItem> {
     }
     console.log(`anchorIndex`);
     console.log(anchorIndex);
+    const visibleKeys = this.visibleItems.map((vi) => vi.id);
     const visibleItemSelection = this.visibleItems
       .filter((vi, index) => index >= startIndex && index <= endIndex)
       .map((vi) => vi.id);
 
-    const newItems = [...this.selectedItemKeys, ...visibleItemSelection];
+    const newItems = [
+      ...this.selectedItemKeys.filter((sk) => !visibleKeys.includes(sk)),
+      ...visibleItemSelection,
+    ];
 
     // @ts-ignore
     this.onSelectionChanged(newItems);
