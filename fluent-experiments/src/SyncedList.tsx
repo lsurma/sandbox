@@ -27,6 +27,7 @@ class PersSel<TItem = TItemWithId> implements ISelection<TItem> {
   private visibleItems: TItem[] = [];
   private selectedItemKeys: string[] = [];
   private onSelectionChanged = (selectedKeys: string[]) => {};
+  private anchorIndex = 0;
 
   constructor(options?: any) {
     this.count = 0;
@@ -46,7 +47,6 @@ class PersSel<TItem = TItemWithId> implements ISelection<TItem> {
     this.items = items;
     this.visibleItems = visibleItems;
     this.selectedItemKeys = selectedItemKeys;
-
     // Rebuild cache
 
     // Emit update event
@@ -86,9 +86,6 @@ class PersSel<TItem = TItemWithId> implements ISelection<TItem> {
 
   isIndexSelected(index: number): boolean {
     const item = this.visibleItems?.[index];
-    console.log("isIndexSelected");
-    console.log(item);
-    console.log(index);
 
     if (!item) {
       return false;
@@ -112,6 +109,27 @@ class PersSel<TItem = TItemWithId> implements ISelection<TItem> {
 
   selectToIndex(index: number, clearSelection?: boolean): void {
     console.log("selectToIndex");
+    console.log(index, clearSelection);
+
+    const anchorIndex = this.anchorIndex || 0;
+    let startIndex = Math.min(index, anchorIndex);
+    const endIndex = Math.max(index, anchorIndex);
+
+    this.setChangeEvents(false);
+
+    if (clearSelection) {
+      this.setAllSelected(false);
+    }
+    console.log(`anchorIndex`);
+    console.log(anchorIndex);
+    const visibleItemSelection = this.visibleItems
+      .filter((vi, index) => index >= startIndex && index <= endIndex)
+      .map((vi) => vi.id);
+
+    const newItems = [...this.selectedItemKeys, ...visibleItemSelection];
+
+    // @ts-ignore
+    this.onSelectionChanged(newItems);
   }
 
   selectToKey(key: string, clearSelection?: boolean): void {
@@ -123,7 +141,15 @@ class PersSel<TItem = TItemWithId> implements ISelection<TItem> {
   }
 
   setAllSelected(isAllSelected: boolean): void {
-    console.log("setAllSelected");
+    // @ts-ignore
+    const visibleItemKeys = this.visibleItems.map((vi) => vi.id);
+
+    const newItems = isAllSelected
+      ? [...this.selectedItemKeys, ...visibleItemKeys]
+      : this.selectedItemKeys.filter((key) => !visibleItemKeys.includes(key));
+
+    // @ts-ignore
+    this.onSelectionChanged(newItems);
   }
 
   setChangeEvents(isEnabled: boolean, suppressChange?: boolean): void {}
@@ -135,6 +161,10 @@ class PersSel<TItem = TItemWithId> implements ISelection<TItem> {
     emitEvent: boolean = false
   ): void {
     const item = this.visibleItems[index];
+
+    if (shouldAnchor) {
+      this.anchorIndex = index;
+    }
 
     // @ts-ignore
     const newItems = isSelected
@@ -168,11 +198,11 @@ class PersSel<TItem = TItemWithId> implements ISelection<TItem> {
   }
 
   toggleAllSelected(): void {
-    console.log("toggleAllSelected");
+    this.setAllSelected(!this.isAllSelected());
   }
 
   toggleIndexSelected(index: number): void {
-    this.setIndexSelected(index, !this.isIndexSelected(index), false);
+    this.setIndexSelected(index, !this.isIndexSelected(index), true);
   }
 
   toggleKeySelected(key: string): void {
@@ -360,8 +390,8 @@ export const SyncedList = () => {
     ];
 
     // @ts-ignore
-    i = new Array(4000)
-      .fill(0, 0, 4000)
+    i = new Array(15)
+      .fill(0, 0, 15)
       .map((v) => ({ id: Math.random(), title: Math.random() }));
 
     itemsRef.current = [...i];
