@@ -398,6 +398,11 @@ export class FluentSelection<TItem = IObjectWithKey>
 
     const isExempt = this._exemptedIndices[index];
     const canSelect = !this._unselectableIndices[index];
+    console.log("x");
+
+    console.log(isExempt);
+    console.log(index);
+    console.log(isSelected);
 
     if (canSelect) {
       if (isSelected && this.mode === SelectionMode.single) {
@@ -570,7 +575,7 @@ export class FluentSelection<TItem = IObjectWithKey>
     this.setChangeEvents(true);
   }
 
-  public updateCount(preserveModalState: boolean = false): void {
+  public _updateCount(preserveModalState: boolean = false): void {
     const count = this.getSelectedCount();
 
     if (count !== this.count) {
@@ -615,7 +620,11 @@ export class FluentSelection<TItem = IObjectWithKey>
     this.setChangeEvents(true);
   }
 
-  private _change(): void {
+  public emitChange() {
+    EventGroup.raise(this, SELECTION_CHANGE);
+  }
+
+  public _change(): void {
     if (this._changeEventSuppressionCount === 0) {
       this._selectedItems = null;
       this._selectedIndices = undefined;
