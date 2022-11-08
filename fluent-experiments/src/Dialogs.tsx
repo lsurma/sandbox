@@ -11,9 +11,16 @@ import {
 import * as React from "react";
 import { useEffect, useId, useState } from "react";
 
+interface DialogActionDefinition {
+  inProgress?: boolean;
+  onClick: (dialogState: DialogState) => void;
+  text: string;
+}
+
 interface DialogStateDefinition {
   key: string;
   dialogProps: IDialogProps;
+  actions?: DialogActionDefinition[];
 }
 
 interface UseDialogProps {
@@ -27,6 +34,7 @@ interface DialogState {
   open: boolean;
   currentStateKey: string | undefined;
   states: DialogStateDefinition[];
+  customProperties?: any;
 }
 
 const dialogs = atom<Record<string, DialogState>>({
@@ -94,6 +102,22 @@ export const DialogsRoot = () => {
           return <></>;
         }
 
+        let footerWithActions = null;
+
+        if (state.actions && state.actions.length > 0) {
+          footerWithActions = (
+            <DialogFooter>
+              {state.actions.map((definition) => (
+                <DefaultButton
+                  disabled={definition.inProgress}
+                  onClick={() => definition.onClick(item)}
+                  text={definition.text}
+                />
+              ))}
+            </DialogFooter>
+          );
+        }
+
         return (
           <Dialog
             {...state.dialogProps}
@@ -102,18 +126,8 @@ export const DialogsRoot = () => {
 
             // onDismiss={() => dismiss(id)}
           >
-            {/*<DialogFooter>*/}
-            {/*  <DefaultButton*/}
-            {/*    disabled={item.inProgress}*/}
-            {/*    onClick={() => dismiss(id)}*/}
-            {/*    text="Don't send"*/}
-            {/*  />*/}
-            {/*  <PrimaryButton*/}
-            {/*    disabled={item.inProgress}*/}
-            {/*    onClick={() => onConfirm(id)}*/}
-            {/*    text="Send"*/}
-            {/*  />*/}
-            {/*</DialogFooter>*/}
+            {state.dialogProps.children}
+            {footerWithActions}
           </Dialog>
         );
 
@@ -157,12 +171,15 @@ const useDialog = (props: UseDialogProps) => {
   useEffect(() => {
     // Register dialog
     setItems((items) => {
+      const current = { ...items[id] };
+
       return {
         ...items,
         [id]: {
           id: id,
-          open: props.open ?? false,
-          currentStateKey: props.currentStateKey ?? undefined,
+          open: props.open ?? current?.open ?? false,
+          currentStateKey:
+            props.currentStateKey ?? current?.currentStateKey ?? undefined,
           states: props.states,
         },
       };
@@ -170,11 +187,29 @@ const useDialog = (props: UseDialogProps) => {
   }, [props]);
 
   return {
-    open: (stateKey: string, args?: any) => {
+    confirm: (onConfirm: () => void) => {
+      setItems((items) => {
+        const item = { ...items[id] };
+        item.open = true;
+        item.currentStateKey = "defaultConfirmation";
+
+        item.customProperties = {
+          onConfirmCallback: onConfirm,
+        };
+
+        return {
+          ...items,
+          [id]: item,
+        };
+      });
+    },
+
+    open: (stateKey: string, customProperties?: any) => {
       setItems((items) => {
         const item = { ...items[id] };
         item.open = true;
         item.currentStateKey = stateKey;
+        item.customProperties = customProperties;
 
         return {
           ...items,
@@ -189,8 +224,8 @@ export const DialogTest = () => {
   const [inProgress, setInProgress] = useState(false);
 
   const dialog = useDialog({
-    open: inProgress ? true : undefined,
-    currentStateKey: inProgress ? "inProgress" : undefined,
+    // open: inProgress ? true : undefined,
+    // currentStateKey: inProgress ? "inProgress" : undefined,
 
     states: [
       {
@@ -200,18 +235,47 @@ export const DialogTest = () => {
             isBlocking: true,
           },
 
-          children: (
-            <DialogFooter>
-              <PrimaryButton onClick={() => setInProgress(true)} text="Send" />
-            </DialogFooter>
-          ),
-
           dialogContentProps: {
             type: DialogType.normal,
             title: "Start",
             subText: "X",
           },
         },
+
+        actions: [
+          {
+            inProgress: inProgress,
+            text: "Send",
+            onClick: () => setInProgress(true),
+          },
+        ],
+      },
+
+      {
+        key: "defaultConfirmation",
+        dialogProps: {
+          modalProps: {
+            isBlocking: true,
+          },
+
+          dialogContentProps: {
+            type: DialogType.normal,
+            title: "Are you sure?",
+            subText: "Are you sure?",
+          },
+        },
+
+        actions: [
+          {
+            inProgress: inProgress,
+            text: "Yes",
+            onClick: (dialogState) => {
+              if (dialogState.customProperties.onConfirmCallback) {
+                dialogState.customProperties.onConfirmCallback();
+              }
+            },
+          },
+        ],
       },
 
       {
@@ -251,17 +315,38 @@ export const DialogTest = () => {
 
   useEffect(() => {
     setTimeout(() => {
-      dialog.open("1");
+      // dialog.open("1");
     }, 500);
   }, []);
 
   useEffect(() => {
-    if (inProgress) {
-      setTimeout(() => dialog.open("thanks"), 2000);
+    if (!inProgress) {
+      // setTimeout(() => dialog.open("thanks"), 2000);
     }
   }, [inProgress]);
 
-  return <>test</>;
+  const actionWithConfirmation = () => {
+    dialog.confirm(async () => {
+      setInProgress(true);
+
+      await new Promise((resolve, reject) => {
+        setTimeout(resolve, 2000);
+      });
+
+      setInProgress(false);
+
+      setTimeout(() => {
+        dialog.open("thanks");
+      }, 1000);
+    });
+  };
+
+  return (
+    <>
+      xczc
+      <button onClick={actionWithConfirmation}>confirm</button>
+    </>
+  );
 };
 
 export const Dialogs = () => {
