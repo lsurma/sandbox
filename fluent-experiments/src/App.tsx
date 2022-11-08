@@ -11,6 +11,7 @@ import { Menus } from "./Menus";
 import { FormTest } from "./FormController";
 import { SyncedList } from "./SyncedList";
 import { Form } from "./Form";
+import { Dialogs } from "./Dialogs";
 
 const genItems = () => {
   return Array(10000)
@@ -21,6 +22,7 @@ const genItems = () => {
 initializeIcons();
 
 function App() {
+  return <Dialogs />;
   return <Form />;
   return <SyncedList />;
   return <FormTest />;
