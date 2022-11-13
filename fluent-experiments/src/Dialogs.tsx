@@ -12,6 +12,17 @@ import * as React from "react";
 import { useEffect, useId, useState } from "react";
 import { DialogsRenderingRoot } from "./Dialog/Dialog";
 import { useDialog } from "./Dialog/Dialog.hooks";
+import { SimpleValidator } from "./Validation/SimpleValidator";
+
+const x = new SimpleValidator();
+x.add("key", (x) => [x.required()]).add("key2", (x) => [x.required]);
+
+const res = x.validate({
+  key: "",
+  key2: "null",
+});
+
+console.log(res);
 
 export const DialogTest = () => {
   const [inProgress, setInProgress] = useState(false);
