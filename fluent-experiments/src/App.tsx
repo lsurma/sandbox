@@ -10,7 +10,7 @@ import {
 import { Menus } from "./Menus";
 import { FormTest } from "./FormController";
 import { SyncedList } from "./SyncedList";
-import { Form } from "./Form";
+import { Formx } from "./Formx";
 import { Dialogs } from "./Dialogs";
 
 const genItems = () => {
@@ -22,10 +22,8 @@ const genItems = () => {
 initializeIcons();
 
 function App() {
-  return <FormTest />;
-
-  return <Dialogs />;
-  return <Form />;
+  // return <Dialogs />;
+  return <Formx />;
   return <SyncedList />;
   return <FormTest />;
 
