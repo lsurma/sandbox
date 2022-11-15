@@ -15,7 +15,10 @@ import { useDialog } from "./Dialog/Dialog.hooks";
 import { SimpleValidator } from "./Validation/SimpleValidator";
 
 const x = new SimpleValidator();
-x.add("key", (x) => [x.required()]).add("key2", (x) => [x.required]);
+
+// x.string("key", "key", (x) => [x.required()] )
+
+// x.add("key", (x) => [x.required()]).add("key2", (x) => [x.required]);
 
 const res = x.validate({
   key: "",
@@ -32,6 +35,7 @@ export const DialogTest = () => {
     // currentStateKey: inProgress ? "inProgress" : undefined,
     inProgress: inProgress,
     inProgressDialog: inProgress,
+    inProgressDialogText: "test",
   });
 
   useEffect(() => {

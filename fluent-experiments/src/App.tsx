@@ -22,6 +22,8 @@ const genItems = () => {
 initializeIcons();
 
 function App() {
+  return <FormTest />;
+
   return <Dialogs />;
   return <Form />;
   return <SyncedList />;

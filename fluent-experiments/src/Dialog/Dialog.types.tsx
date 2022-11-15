@@ -4,12 +4,19 @@ export interface DialogActionDefinition {
   inProgress?: boolean;
   onClick: (dialogState: DialogState) => void;
   text: string;
+  variant?: "default" | "primary";
+  placement?: "left" | "right";
+  key?: string;
+}
+
+export interface DialogStateProps {
+  dialogProps: IDialogProps;
+  actions?: DialogActionDefinition[];
 }
 
 export interface DialogStateDefinition {
   key: string;
-  dialogProps: IDialogProps;
-  actions?: DialogActionDefinition[];
+  getProps: (dialogState: DialogState) => DialogStateProps;
 }
 
 export interface UseBaseDialogProps {
@@ -24,6 +31,7 @@ export interface UseDialogProps {
   states?: DialogStateDefinition[];
   inProgress?: boolean;
   inProgressDialog?: boolean;
+  inProgressDialogText?: string;
 }
 
 export interface DialogState {
@@ -32,6 +40,7 @@ export interface DialogState {
   currentStateKey: string | undefined;
   states: DialogStateDefinition[];
   customProperties?: any;
+  onDismiss: () => void;
 }
 
 export interface CreateDialogPresetsProps {

@@ -16,86 +16,94 @@ export const createDialogPresets = (
   return [
     {
       key: "1",
-      dialogProps: {
-        modalProps: {
-          isBlocking: true,
+      getProps: () => ({
+        dialogProps: {
+          modalProps: {
+            isBlocking: true,
+          },
+
+          dialogContentProps: {
+            type: DialogType.normal,
+            title: "Start",
+            subText: "X",
+            showCloseButton: true,
+          },
         },
 
-        dialogContentProps: {
-          type: DialogType.normal,
-          title: "Start",
-          subText: "X",
-        },
-      },
-
-      actions: [
-        {
-          inProgress: inProgress,
-          text: "Send",
-          onClick: () => {},
-        },
-      ],
+        actions: [
+          {
+            inProgress: inProgress,
+            text: "Send",
+            onClick: () => {},
+          },
+        ],
+      }),
     },
 
     {
       key: "defaultConfirmation",
-      dialogProps: {
-        modalProps: {
-          isBlocking: true,
-        },
+      getProps: () => ({
+        dialogProps: {
+          modalProps: {},
 
-        dialogContentProps: {
-          type: DialogType.normal,
-          title: "Are you sure?",
-          subText: "Are you sure?",
-        },
-      },
-
-      actions: [
-        {
-          inProgress: inProgress,
-          text: "Yes",
-          onClick: (dialogState) => {
-            if (dialogState.customProperties.onConfirmCallback) {
-              dialogState.customProperties.onConfirmCallback();
-            }
+          dialogContentProps: {
+            type: DialogType.normal,
+            title: "Are you sure?",
+            subText: "Are you sure?",
+            showCloseButton: true,
           },
         },
-      ],
+
+        actions: [
+          {
+            inProgress: inProgress,
+            text: "Yes",
+            onClick: (dialogState) => {
+              if (dialogState.customProperties.onConfirmCallback) {
+                dialogState.customProperties.onConfirmCallback();
+              }
+            },
+          },
+        ],
+      }),
     },
 
     {
       key: "thanks",
-      dialogProps: {
-        modalProps: {
-          isBlocking: false,
-          isClickableOutsideFocusTrap: true,
-        },
+      getProps: () => ({
+        dialogProps: {
+          modalProps: {
+            isBlocking: false,
+            isClickableOutsideFocusTrap: true,
+          },
 
-        dialogContentProps: {
-          type: DialogType.normal,
-          title: "thanks",
-          subText: "thanks",
+          dialogContentProps: {
+            type: DialogType.normal,
+            title: "thanks",
+            subText: "thanks",
+          },
         },
-      },
+      }),
     },
 
     {
       key: "inProgress",
-      dialogProps: {
-        modalProps: {
-          isBlocking: true,
-          isClickableOutsideFocusTrap: false,
-        },
+      getProps: (dialogState) => ({
+        dialogProps: {
+          modalProps: {
+            isBlocking: true,
+            isClickableOutsideFocusTrap: false,
+          },
 
-        children: <Spinner />,
+          children: <Spinner />,
 
-        dialogContentProps: {
-          type: DialogType.close,
-          title: "",
-          subText: "",
+          dialogContentProps: {
+            type: DialogType.close,
+            title: dialogState?.customProperties?.text ?? "",
+            subText: "",
+          },
         },
-      },
+      }),
     },
   ];
 };

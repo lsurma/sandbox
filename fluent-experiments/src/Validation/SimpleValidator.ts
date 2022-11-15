@@ -11,25 +11,66 @@ interface SimpleValidatorValidationResult {
 interface SimpleValidatorRule {
   validate: (
     data: any,
-    fieldDefinition: SimpleValidatorFieldDefinition
+    definition: SimpleValidatorFieldDefinition
   ) => SimpleValidatorRuleValidationResult;
+}
+
+enum FieldType {
+  String,
+  Number,
+  Array,
 }
 
 interface SimpleValidatorFieldDefinition {
   path: string;
   label: string;
+  type: FieldType;
   rules: SimpleValidatorRule[];
+}
+
+type RulesCreator = (
+  availableRules: SimpleValidatorRules
+) => ((() => SimpleValidatorRule) | SimpleValidatorRule)[];
+
+interface FieldWithRules {
+  path: string;
+  label: string;
+  type: FieldType;
+  rules: RulesCreator;
 }
 
 class SimpleValidatorRules {
   required(): SimpleValidatorRule {
     return {
-      validate: (data: any, fieldDefinition) => {
-        console.log(data);
+      validate: (data: any, definition) => {
+        return {
+          valid: data !== null && data !== undefined,
+          message: `${definition.label} is required`,
+        };
+      },
+    };
+  }
+
+  nonEmpty(): SimpleValidatorRule {
+    return {
+      validate: (data: any, definition) => {
+        if (definition.type == FieldType.String) {
+          return {
+            valid: data != "",
+            message: `${definition.label} is required`,
+          };
+        }
+
+        if (definition.type == FieldType.Array) {
+          return {
+            valid: Array.isArray(data) && data.length > 0,
+            message: `${definition.label} is required`,
+          };
+        }
 
         return {
-          valid: data != "",
-          message: `${fieldDefinition.label} is required`,
+          valid: false,
+          message: `${definition.label} is required`,
         };
       },
     };
@@ -40,16 +81,15 @@ export class SimpleValidator {
   protected fields: Record<string, SimpleValidatorFieldDefinition> = {};
   protected availableRules: SimpleValidatorRules = new SimpleValidatorRules();
 
-  public add(
-    path: string,
-    rules: (
-      availableRules: SimpleValidatorRules
-    ) => ((() => SimpleValidatorRule) | SimpleValidatorRule)[]
-  ): this {
+  public addField(data: FieldWithRules): this {
+    const path = data.path;
+    const rules = data.rules;
+
     if (!this.fields[path]) {
       this.fields[path] = {
         path: path,
-        label: path,
+        type: data.type,
+        label: data.label ?? data.path,
         rules: [],
       };
     }
@@ -64,7 +104,18 @@ export class SimpleValidator {
     return this;
   }
 
+  public string(path: string, label: string, rules: RulesCreator): this {
+    return this.addField({
+      path: path,
+      type: FieldType.String,
+      label: label,
+      rules: rules,
+    });
+  }
+
   public validate(data: any): SimpleValidatorValidationResult {
+    const bailOnFirstError = true;
+
     const result: SimpleValidatorValidationResult = {
       valid: true,
       errors: {},
@@ -73,9 +124,26 @@ export class SimpleValidator {
     for (let key in this.fields) {
       const definition = this.fields[key];
       const fieldData = data[definition.path];
-      const fieldRulesResults = definition.rules.map((rule) =>
-        rule.validate(fieldData, definition)
-      );
+      const fieldRulesResults: SimpleValidatorRuleValidationResult[] = [];
+
+      for (const rule of definition.rules) {
+        let result: SimpleValidatorRuleValidationResult = {
+          valid: false,
+        };
+
+        try {
+          result = rule.validate(fieldData, definition);
+        } catch (e) {
+          result.valid = false;
+          result.message = e?.toString();
+        }
+
+        fieldRulesResults.push(result);
+
+        if (!result.valid && bailOnFirstError) {
+          break;
+        }
+      }
 
       // Aggregate error messages
       const resultsWithError = fieldRulesResults.filter(

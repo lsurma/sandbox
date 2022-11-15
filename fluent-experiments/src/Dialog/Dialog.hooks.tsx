@@ -12,6 +12,22 @@ const useBaseDialog = (props: UseBaseDialogProps) => {
   const setItems = useSetRecoilState(dialogsState);
   const id = useId();
 
+  const closeAction = (stateKey?: string, customProperties?: any) => {
+    setItems((items) => {
+      const item = { ...items[id] };
+      if (!stateKey || item.currentStateKey == stateKey) {
+        item.open = false;
+        item.currentStateKey = stateKey;
+        item.customProperties = customProperties;
+      }
+
+      return {
+        ...items,
+        [id]: item,
+      };
+    });
+  };
+
   useEffect(() => {
     // Register dialog
     setItems((items) => {
@@ -25,6 +41,7 @@ const useBaseDialog = (props: UseBaseDialogProps) => {
           currentStateKey:
             props.currentStateKey ?? current?.currentStateKey ?? undefined,
           states: props.states,
+          onDismiss: () => closeAction(),
         },
       };
     });
@@ -57,22 +74,7 @@ const useBaseDialog = (props: UseBaseDialogProps) => {
       });
     },
 
-    close: (stateKey?: string, customProperties?: any) => {
-      setItems((items) => {
-        const item = { ...items[id] };
-
-        if (!stateKey || item.currentStateKey == stateKey) {
-          item.open = false;
-          item.currentStateKey = stateKey;
-          item.customProperties = customProperties;
-        }
-
-        return {
-          ...items,
-          [id]: item,
-        };
-      });
-    },
+    close: closeAction,
   };
 };
 
@@ -110,7 +112,9 @@ export const useDialog = (props: UseDialogProps) => {
   useEffect(() => {
     if (props.inProgressDialog && !dialogOpenTimeoutRef.current) {
       dialogOpenTimeoutRef.current = setTimeout(() => {
-        openAction("inProgress");
+        openAction("inProgress", {
+          text: props.inProgressDialogText,
+        });
       }, 150);
     } else {
       closeAction("inProgress");

@@ -1,49 +1,35 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { DefaultButton, Panel, PanelType, PrimaryButton, TextField } from "@fluentui/react";
+import {
+  DefaultButton,
+  Panel,
+  PanelType,
+  PrimaryButton,
+  TextField,
+} from "@fluentui/react";
 
-interface FormController
-{
-  inProgress : boolean;
-  submit : () => PromiseLike<any>;
-  discard : () => PromiseLike<any>;
-  register : (submitCallback : () => PromiseLike<any>, discardCallback ?: () => PromiseLike<any>) => void;
+interface UseStateProxy {
+  state: any;
+  setState: (setter: (current: any) => void, shouldRerender?: boolean) => void;
 }
 
-const useFormController = () : FormController => {
-  const submitCallbackRef = useRef<null | (() => PromiseLike<any>)>(null)
-  const discardCallbackRef = useRef<null | (() => PromiseLike<any>)>(null)
+const useStateProxy = (): UseStateProxy => {
+  const stateRef = useRef<any>({});
+  const [rerenderToken, setRerenderToken] = useState<undefined | number>(
+    undefined
+  );
 
-  const [inProgress, setInProgress] = useState(false);
-
-  const api = {
-    inProgress,
-
-    register : (submitCallback : () => PromiseLike<any>, discardCallback ?: () => PromiseLike<any>) => {
-      submitCallbackRef.current = submitCallback;
-      discardCallbackRef.current = discardCallback ? discardCallback : null;
-    },
-
-    discard : async () => {
-      discardCallbackRef.current && discardCallbackRef.current();
-    },
-
-    submit : async () => {
-      if(!submitCallbackRef.current) {
-        throw new Error("No submit function registered");
+  return {
+    state: stateRef.current,
+    setState: (setter: (current: any) => void, shouldRerender?: boolean) => {
+      setter(stateRef.current);
+      if (shouldRerender) {
+        setRerenderToken(Math.random());
       }
-
-      console.log("Ctrl:start");
-      setInProgress(true);
-      await submitCallbackRef.current();
-      setInProgress(false);
-      console.log("Ctrl:end");
-    }
+    },
   };
+};
 
-  return api;
-}
-
-const Form = (props : { formController ?: FormController }) => {
+const Form = (props: { proxy?: UseStateProxy }) => {
   const [inProgress, setInProgress] = useState(false);
   const [value, setValue] = useState<string | undefined>("");
 
@@ -53,61 +39,88 @@ const Form = (props : { formController ?: FormController }) => {
     console.log(value);
     await new Promise((resolve) => {
       setTimeout(resolve, 1000);
-    })
+    });
     setInProgress(false);
     console.log("submitFunction:end");
-  }
+  };
 
   const submit = async () => {
-    if(props.formController) {
-      await props.formController.submit();
-      return;
-    }
-
     await submitFunction();
-  }
+  };
+
+  const discard = () => {
+    setValue("");
+  };
+
+  const setProxyState = (shouldRerender?: boolean) => {
+    if (props.proxy) {
+      props.proxy.setState((current) => {
+        current.inProgress = inProgress;
+        current.submit = submitFunction;
+        current.discard = discard;
+      }, shouldRerender);
+    }
+  };
 
   useEffect(() => {
-    // Attach submit callback to form controller
-    props.formController && props.formController.register(submitFunction, async () => {
-      setValue("");
-    });
-  }, [value])
+    setProxyState();
+  }, [value]);
 
-  const submitInProgress = props.formController ? props.formController.inProgress : inProgress;
+  useEffect(() => {
+    setProxyState(true);
+  }, [inProgress]);
 
-  return <>
-    <TextField value={value} onChange={(e, v) => setValue(v)} />
+  const submitInProgress = inProgress;
 
-    <PrimaryButton disabled={submitInProgress} text={"Save inner"} onClick={submit} />
+  console.log("Inner");
 
-  </>
-}
+  return (
+    <>
+      <TextField value={value} onChange={(e, v) => setValue(v)} />
+
+      <PrimaryButton
+        disabled={submitInProgress}
+        text={"Save inner"}
+        onClick={submit}
+      />
+    </>
+  );
+};
 
 export const FormTest = () => {
-  const editorForm = useFormController();
+  const proxy = useStateProxy();
 
   const outerSave = async () => {
-    await editorForm.submit();
-  }
+    proxy.state.submit();
+  };
 
-  console.log(`FormTest`);
+  console.log("Outer");
 
-  return <>
-
-    <Panel
-      type={PanelType.extraLarge}
-      isOpen={true}
-      isFooterAtBottom
-      onRenderFooterContent={() => {
-        return <>
-          <PrimaryButton disabled={editorForm.inProgress} text={"Save"} onClick={outerSave} />
-          <DefaultButton disabled={editorForm.inProgress} text={"Discard changes"} onClick={editorForm.discard} />
-        </>
-      }}
-    >
-      <Form  formController={editorForm} />
-    </Panel>
-
-  </>
-}
+  return (
+    <>
+      <Panel
+        type={PanelType.extraLarge}
+        isOpen={true}
+        isFooterAtBottom
+        onRenderFooterContent={() => {
+          return (
+            <>
+              <PrimaryButton
+                disabled={proxy.state?.inProgress}
+                text={"Save"}
+                onClick={outerSave}
+              />
+              <DefaultButton
+                disabled={proxy.state?.inProgress}
+                text={"Discard changes"}
+                onClick={proxy.state?.discard}
+              />
+            </>
+          );
+        }}
+      >
+        <Form proxy={proxy} />
+      </Panel>
+    </>
+  );
+};
