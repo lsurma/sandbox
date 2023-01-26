@@ -47,12 +47,13 @@
     {
         public string PrimaryColor { get; set; } = "";
 
-        public ApiSettingsData Nested { get; set; } = new ApiSettingsData();
     }
     
     public class ApiSettingsData : IFormDataModel
     {
         public string Key { get; set; } = "";
+
+        public List<string> Keys { get; set; } = new List<string>();
     }
 
     public class ApiSettings : ISettings
@@ -68,8 +69,9 @@
             {
                 new DataFormField<ApiSettingsData>()
                 {
+                    Repeatable = true,
                     Label = "Key",
-                    Path = x => x.Key
+                    Path = x => x.Keys,
                 }
             }
         };
@@ -95,7 +97,7 @@
                 new DataFormField<ThemeSettingsData>()
                 {
                     Label = "PrimaryColor",
-                    Path = x => x.Nested.Key
+                    Path = x => x.PrimaryColor
                 }
             }
         };
