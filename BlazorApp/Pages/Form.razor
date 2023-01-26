@@ -1,0 +1,103 @@
+﻿@page "/Form"
+@using BlazorApp.Form
+<h3>Form</h3>
+
+@foreach (var item in Settings)
+{
+    <div>@item.Label - <button @onclick="@(() => CurrentSettings = item)">edit</button></div>
+}
+
+<div>current: @(CurrentSettings?.Label)</div>
+
+@if (CurrentSettings != null)
+{
+    @DynamicFormInstance
+}
+
+@code {
+    
+    RenderFragment DynamicFormInstance => builder =>
+    {
+        Type dataType = CurrentSettings!.DataType;
+        var type = typeof(DynamicForm<>).MakeGenericType(new[] { dataType });
+        builder.OpenComponent(1, type);
+        builder.AddAttribute(2, "Form", CurrentSettings.Form);
+        builder.CloseComponent();
+    };
+
+    Type MyType { get; set; } = typeof(string);
+    string MyString { get; set; } = "hello";
+    
+    public ISettings? CurrentSettings { get; set; }
+
+    public List<ISettings> Settings = new List<ISettings>()
+    {
+        new ThemeSettings(),
+        new ApiSettings()
+    };
+
+    public interface ISettings
+    {
+        public string Label { get; set; }
+        public IDataForm Form { get; set; }
+        public Type DataType { get; set; }
+    }
+    
+    public class ThemeSettingsData : IFormDataModel
+    {
+        public string PrimaryColor { get; set; } = "";
+
+        public ApiSettingsData Nested { get; set; } = new ApiSettingsData();
+    }
+    
+    public class ApiSettingsData : IFormDataModel
+    {
+        public string Key { get; set; } = "";
+    }
+
+    public class ApiSettings : ISettings
+    {
+        public string Label { get; set; } = "ApiSettings";
+
+        
+        public IDataForm Form { get; set; } = new DataForm<ApiSettingsData>()
+        {
+            Data = new ApiSettingsData(),
+            
+            Fields = new ()
+            {
+                new DataFormField<ApiSettingsData>()
+                {
+                    Label = "Key",
+                    Path = x => x.Key
+                }
+            }
+        };
+
+        public Type DataType { get; set; } = typeof(ApiSettingsData);
+    }
+    
+    public class ThemeSettings : ISettings
+    {
+        public string Label { get; set; } = "ThemeSettings";
+
+        public Type DataType { get; set; } = typeof(ThemeSettingsData);
+
+        public IDataForm Form { get; set; } = new DataForm<ThemeSettingsData>()
+        {
+            Data = new ThemeSettingsData()
+            {
+                PrimaryColor = "#FFF"
+            },
+
+            Fields = new ()
+            {
+                new DataFormField<ThemeSettingsData>()
+                {
+                    Label = "PrimaryColor",
+                    Path = x => x.Nested.Key
+                }
+            }
+        };
+    }
+}
