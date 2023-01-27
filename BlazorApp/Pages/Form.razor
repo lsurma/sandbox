@@ -1,105 +1,175 @@
 ﻿@page "/Form"
-@using BlazorApp.Form
+@using System.Text.Json
 <h3>Form</h3>
 
-@foreach (var item in Settings)
-{
-    <div>@item.Label - <button @onclick="@(() => CurrentSettings = item)">edit</button></div>
-}
+<DynamicFormBase @bind-Data="Data" Type="typeof(ThemeSettingsData)" Form="GetForm()" />
+<br /><br />
+<textarea rows="20" cols="100">@(JsonSerializer.Serialize(Data))</textarea>                
 
-<div>current: @(CurrentSettings?.Label)</div>
-
-@if (CurrentSettings != null)
-{
-    @DynamicFormInstance
-}
 
 @code {
+
+    //
+    // RenderFragment DynamicFormInstance => builder =>
+    // {
+    //     Type dataType = CurrentSettings!.DataType;
+    //     var type = typeof(DynamicForm<>).MakeGenericType(new[] { dataType });
+    //     builder.OpenComponent(1, type);
+    //     builder.AddAttribute(2, "Form", CurrentSettings.Form);
+    //     builder.CloseComponent();
+    // };
+    //
+    //
+
+    // Type MyType { get; set; } = typeof(string);
+    // string MyString { get; set; } = "hello";
+    //
+    // public ISettings? CurrentSettings { get; set; }
+    //
+    // public List<ISettings> Settings = new List<ISettings>()
+    // {
+    //     new ThemeSettings(),
+    //     new ApiSettings()
+    // };
+    //
+    // public interface ISettings
+    // {
+    //     public string Label { get; set; }
+    //     public IDynamicFormModel Form { get; set; }
+    //     public Type DataType { get; set; }
+    // }
+
+    public object Data { get; set; } = new ThemeSettingsBigData();
     
-    RenderFragment DynamicFormInstance => builder =>
+    
+    public IDynamicFormModel nestedForm = new DynamicFormModel()
     {
-        Type dataType = CurrentSettings!.DataType;
-        var type = typeof(DynamicForm<>).MakeGenericType(new[] { dataType });
-        builder.OpenComponent(1, type);
-        builder.AddAttribute(2, "Form", CurrentSettings.Form);
-        builder.CloseComponent();
+        Fields = new List<IDynamicFormFieldModel>()
+        {
+            DynamicFormFieldModel.Create<ThemeSettingsData>(x => x.PrimaryColor),
+            DynamicFormFieldModel.Create<ThemeSettingsData>(x => x.SecondaryColor),
+        }
     };
 
-    Type MyType { get; set; } = typeof(string);
-    string MyString { get; set; } = "hello";
-    
-    public ISettings? CurrentSettings { get; set; }
 
-    public List<ISettings> Settings = new List<ISettings>()
+    public IDynamicFormModel GetForm()
     {
-        new ThemeSettings(),
-        new ApiSettings()
-    };
-
-    public interface ISettings
-    {
-        public string Label { get; set; }
-        public IDataForm Form { get; set; }
-        public Type DataType { get; set; }
-    }
-    
-    public class ThemeSettingsData : IFormDataModel
-    {
-        public string PrimaryColor { get; set; } = "";
-
-    }
-    
-    public class ApiSettingsData : IFormDataModel
-    {
-        public string Key { get; set; } = "";
-
-        public List<string> Keys { get; set; } = new List<string>();
-    }
-
-    public class ApiSettings : ISettings
-    {
-        public string Label { get; set; } = "ApiSettings";
-
+        var front = DynamicFormFieldModel.Create<ThemeSettingsBigData>(x => x.FrontTheme) ;
+        front.NestedForm = nestedForm;
+        front.Label = "front";
         
-        public IDataForm Form { get; set; } = new DataForm<ApiSettingsData>()
+        var panel = DynamicFormFieldModel.Create<ThemeSettingsBigData>(x => x.PanelTheme);
+        panel.NestedForm = nestedForm;
+        panel.Label = "panel";
+        
+        return new DynamicFormModel()
         {
-            Data = new ApiSettingsData(),
-            
-            Fields = new ()
+            Fields = new List<IDynamicFormFieldModel>()
             {
-                new DataFormField<ApiSettingsData>()
-                {
-                    Repeatable = true,
-                    Label = "Key",
-                    Path = x => x.Keys,
-                }
+                front,
+                panel,
             }
         };
-
-        public Type DataType { get; set; } = typeof(ApiSettingsData);
     }
     
-    public class ThemeSettings : ISettings
+
+    public class ThemeSettingsData
     {
-        public string Label { get; set; } = "ThemeSettings";
+        public string PrimaryColor { get; set; } = "PrimaryColor";
 
-        public Type DataType { get; set; } = typeof(ThemeSettingsData);
-
-        public IDataForm Form { get; set; } = new DataForm<ThemeSettingsData>()
-        {
-            Data = new ThemeSettingsData()
-            {
-                PrimaryColor = "#FFF"
-            },
-
-            Fields = new ()
-            {
-                new DataFormField<ThemeSettingsData>()
-                {
-                    Label = "PrimaryColor",
-                    Path = x => x.PrimaryColor
-                }
-            }
-        };
+        public string SecondaryColor { get; set; } = "SecondaryColor";
     }
+    
+    public class ThemeSettingsBigData
+    {
+        public ThemeSettingsData PanelTheme { get; set; } = new ThemeSettingsData();
+
+        public ThemeSettingsData FrontTheme { get; set; } = new ThemeSettingsData();
+    }
+
+    
+    //
+    // public class ApiSettingsData : IFormDataModel
+    // {
+    //     public string Key { get; set; } = "";
+    //
+    //     public List<string> Keys { get; set; } = new List<string>();
+    //
+    //     public List<ThemeSettingsData> ThemeSettingsDatas { get; set; } = new ();
+    // }
+    //
+    // public class ApiSettings : ISettings
+    // {
+    //     public string Label { get; set; } = "ApiSettings";
+    //
+    //     
+    //     public IDynamicFormModel Form { get; set; } = new DataForm<ApiSettingsData>()
+    //     {
+    //         Data = new ApiSettingsData(),
+    //         
+    //         Fields = new ()
+    //         {
+    //             new DataFormField<ApiSettingsData>()
+    //             {
+    //                 Repeatable = true,
+    //                 Label = "Key",
+    //                 Path = x => x.ThemeSettingsDatas.,
+    //             }
+    //         }
+    //     };
+    //
+    //     public Type DataType { get; set; } = typeof(ApiSettingsData);
+    // }
+    //
+    // public class ThemeSettings : ISettings
+    // {
+    //     public string Label { get; set; } = "ThemeSettings";
+    //
+    //     public Type DataType { get; set; } = typeof(ThemeSettingsData);
+    //
+    //     public IDynamicFormModel Form { get; set; } = new DataForm<ThemeSettingsData>()
+    //     {
+    //         Data = new ThemeSettingsData()
+    //         {
+    //             PrimaryColor = "#FFF"
+    //         },
+    //
+    //         Fields = new ()
+    //         {
+    //             new DataFormField<ThemeSettingsData>()
+    //             {
+    //                 Label = "PrimaryColor",
+    //                 Path = x => x.PrimaryColor
+    //             },
+    //             
+    //             new DataFormField<ThemeSettingsData>()
+    //             {
+    //                 NestedForm = new DataForm<ThemeSettingsData>()
+    //                 {
+    //                     Data = new ThemeSettingsData()
+    //                     {
+    //                         PrimaryColor = "#FFF"
+    //                     },
+    //
+    //                     Fields = new ()
+    //                     {
+    //                         new DataFormField<ThemeSettingsData>()
+    //                         {
+    //                             Label = "PrimaryColor 1",
+    //                             Path = x => x.PrimaryColor
+    //                         },
+    //             
+    //                         new DataFormField<ThemeSettingsData>()
+    //                         {
+    //                             Label = "PrimaryColor 2",
+    //                             Path = x => x.PrimaryColor
+    //                         }
+    //                     }
+    //                 }, 
+    //                 Label = "PrimaryColor",
+    //                 Path = x => x.PrimaryColor
+    //             }
+    //         }
+    //     };
+    // }
 }
