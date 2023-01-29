@@ -1,8 +1,9 @@
 ﻿@page "/Form"
 @using System.Text.Json
+@using BlazorApp.Shared.Form.Core
 <h3>Form</h3>
 
-<DynamicFormBase @bind-Data="Data" Type="typeof(ThemeSettingsData)" Form="GetForm()" />
+<DynamicForm @bind-Data="Data" Form="GetForm()" />
 <br /><br />
 <textarea rows="20" cols="100">@(JsonSerializer.Serialize(Data))</textarea>                
 
@@ -35,39 +36,46 @@
     // public interface ISettings
     // {
     //     public string Label { get; set; }
-    //     public IDynamicFormModel Form { get; set; }
+    //     public IDynamicFormDefinition Form { get; set; }
     //     public Type DataType { get; set; }
     // }
 
     public object Data { get; set; } = new ThemeSettingsBigData();
     
     
-    public IDynamicFormModel nestedForm = new DynamicFormModel()
+    public DynamicFormDefinition nestedForm = new DynamicFormDefinition()
     {
-        Fields = new List<IDynamicFormFieldModel>()
+        Fields = new List<DynamicFormFieldDefinition>()
         {
-            DynamicFormFieldModel.Create<ThemeSettingsData>(x => x.PrimaryColor),
-            DynamicFormFieldModel.Create<ThemeSettingsData>(x => x.SecondaryColor),
+            DynamicFormFieldDefinition.Create<ThemeSettingsData>(x => x.Label),
+            DynamicFormFieldDefinition.Create<ThemeSettingsData>(x => x.Colors, repeatable: true),
         }
     };
 
 
-    public IDynamicFormModel GetForm()
+    public DynamicFormDefinition GetForm()
     {
-        var front = DynamicFormFieldModel.Create<ThemeSettingsBigData>(x => x.FrontTheme) ;
+        var front = DynamicFormFieldDefinition.Create<ThemeSettingsBigData>(x => x.FrontTheme) ;
         front.NestedForm = nestedForm;
         front.Label = "front";
         
-        var panel = DynamicFormFieldModel.Create<ThemeSettingsBigData>(x => x.PanelTheme);
+        var panel = DynamicFormFieldDefinition.Create<ThemeSettingsBigData>(x => x.PanelTheme);
         panel.NestedForm = nestedForm;
         panel.Label = "panel";
         
-        return new DynamicFormModel()
+        
+        var regular = DynamicFormFieldDefinition.Create<ThemeSettingsBigData>(x => x.Themes);
+        regular.Repeatable = true;
+        regular.NestedForm = nestedForm;
+        regular.DataType = typeof(ThemeSettingsData);
+        
+        return new DynamicFormDefinition()
         {
-            Fields = new List<IDynamicFormFieldModel>()
+            Fields = new List<DynamicFormFieldDefinition>()
             {
                 front,
                 panel,
+                regular
             }
         };
     }
@@ -75,13 +83,15 @@
 
     public class ThemeSettingsData
     {
-        public string PrimaryColor { get; set; } = "PrimaryColor";
+        public string Label { get; set; } = "PrimaryColor";
 
-        public string SecondaryColor { get; set; } = "SecondaryColor";
+        public List<string> Colors { get; set; } = new();
     }
     
     public class ThemeSettingsBigData
     {
+        public List<ThemeSettingsData> Themes { get; set; } = new List<ThemeSettingsData>();
+
         public ThemeSettingsData PanelTheme { get; set; } = new ThemeSettingsData();
 
         public ThemeSettingsData FrontTheme { get; set; } = new ThemeSettingsData();
@@ -103,7 +113,7 @@
     //     public string Label { get; set; } = "ApiSettings";
     //
     //     
-    //     public IDynamicFormModel Form { get; set; } = new DataForm<ApiSettingsData>()
+    //     public IDynamicFormDefinition Form { get; set; } = new DataForm<ApiSettingsData>()
     //     {
     //         Data = new ApiSettingsData(),
     //         
@@ -127,7 +137,7 @@
     //
     //     public Type DataType { get; set; } = typeof(ThemeSettingsData);
     //
-    //     public IDynamicFormModel Form { get; set; } = new DataForm<ThemeSettingsData>()
+    //     public IDynamicFormDefinition Form { get; set; } = new DataForm<ThemeSettingsData>()
     //     {
     //         Data = new ThemeSettingsData()
     //         {

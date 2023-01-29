@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <Folder Include="Form" />
+    <Folder Include="Shared\Form\Controls" />
   </ItemGroup>
 
 </Project>
