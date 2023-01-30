@@ -69,13 +69,17 @@
         regular.NestedForm = nestedForm;
         regular.DataType = typeof(ThemeSettingsData);
         
+        var isEnabled = DynamicFormFieldDefinition.Create<ThemeSettingsBigData>(x => x.IsEnabled);
+        isEnabled.DataType = typeof(bool);
+        
         return new DynamicFormDefinition()
         {
             Fields = new List<DynamicFormFieldDefinition>()
             {
                 front,
                 panel,
-                regular
+                regular,
+                isEnabled
             }
         };
     }
@@ -90,6 +94,8 @@
     
     public class ThemeSettingsBigData
     {
+        public bool IsEnabled { get; set; } = false;
+        
         public List<ThemeSettingsData> Themes { get; set; } = new List<ThemeSettingsData>();
 
         public ThemeSettingsData PanelTheme { get; set; } = new ThemeSettingsData();

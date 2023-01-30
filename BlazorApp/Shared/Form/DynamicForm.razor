@@ -185,10 +185,14 @@
         {
             MemberExpression mi = exp as MemberExpression;
 
-            if (mi != null)
+            var member = exp as MemberExpression;
+            var unary = exp as UnaryExpression;
+            var exprNormalized = member ?? (unary is not null ? unary.Operand as MemberExpression : null);
+            
+            if (exprNormalized != null)
             {
-                members.Add(mi.Member);
-                exp = mi.Expression;
+                members.Add(exprNormalized.Member);
+                exp = exprNormalized.Expression;
             }
             else
             {
@@ -259,12 +263,14 @@
 
         while (exp != null)
         {
-            MemberExpression mi = exp as MemberExpression;
-
-            if (mi != null)
+            var member = exp as MemberExpression;
+            var unary = exp as UnaryExpression;
+            var exprNormalized = member ?? (unary is not null ? unary.Operand as MemberExpression : null);
+            
+            if (exprNormalized != null)
             {
-                members.Add(mi.Member);
-                exp = mi.Expression;
+                members.Add(exprNormalized.Member);
+                exp = exprNormalized.Expression;
             }
             else
             {

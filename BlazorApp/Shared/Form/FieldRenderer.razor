@@ -12,7 +12,15 @@
 }
 else
 {
-    <input value="@Data" @oninput="@((ChangeEventArgs args) => OnDataChanged(args.Value))" />
+    @if (Field.DataType == typeof(bool))
+    {
+        <input type="checkbox" checked="@(Convert.ToBoolean(Data) == true)" @onchange="@((args => { OnDataChanged(Convert.ToBoolean(args.Value)); }))" />
+    }
+    else
+    {
+        <input value="@Data" @oninput="@((ChangeEventArgs args) => OnDataChanged(args.Value))" />
+    }
+    
 }
 
 @code {
