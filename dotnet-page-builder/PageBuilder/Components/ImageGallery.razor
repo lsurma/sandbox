@@ -1,0 +1,91 @@
+@using System.Timers
+@implements IDisposable
+
+<div class="image-gallery">
+    @if (ImageUrls != null && ImageUrls.Any())
+    {
+        <div class="gallery-container">
+            <img src="@CurrentImageUrl" alt="Gallery Image" class="gallery-image" />
+            <div class="gallery-counter">
+                @(currentIndex + 1) / @ImageUrls.Count()
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="no-images">
+            <p>No images to display</p>
+        </div>
+    }
+</div>
+
+<style>
+    .image-gallery {
+        max-width: 100%;
+        text-align: center;
+    }
+    
+    .gallery-container {
+        position: relative;
+        display: inline-block;
+    }
+    
+    .gallery-image {
+        max-width: 100%;
+        height: 400px;
+        object-fit: cover;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .gallery-counter {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        background: rgba(0,0,0,0.7);
+        color: white;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+    
+    .no-images {
+        padding: 40px;
+        color: #666;
+        font-style: italic;
+    }
+</style>
+
+@code {
+    [Parameter] public List<string>? ImageUrls { get; set; }
+    
+    private Timer? timer;
+    private int currentIndex = 0;
+    private string CurrentImageUrl => ImageUrls?.ElementAtOrDefault(currentIndex) ?? "";
+
+    protected override void OnInitialized()
+    {
+        if (ImageUrls != null && ImageUrls.Any())
+        {
+            timer = new Timer(1000); // 1 second
+            timer.Elapsed += OnTimerElapsed;
+            timer.AutoReset = true;
+            timer.Enabled = true;
+        }
+    }
+
+    private async void OnTimerElapsed(object? sender, ElapsedEventArgs e)
+    {
+        if (ImageUrls != null && ImageUrls.Any())
+        {
+            currentIndex = (currentIndex + 1) % ImageUrls.Count();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public void Dispose()
+    {
+        timer?.Stop();
+        timer?.Dispose();
+    }
+}

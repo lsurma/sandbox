@@ -1,0 +1,31 @@
+@page "/dynamic-page"
+@model PageBuilder.Pages.DynamicPageModel
+@using PageBuilder.DynamicPages
+@{
+    ViewData["Title"] = "Dynamic Page";
+}
+
+<h3>Dynamic Page</h3>
+
+@if (Model.ComponentDescriptors != null && Model.ComponentDescriptors.Any())
+{
+    <div class="dynamic-content">
+        @foreach (var descriptor in Model.ComponentDescriptors)
+        {
+            <div class="component-wrapper" data-component-id="@descriptor.Id">
+                @await Html.RenderComponentAsync(descriptor.ResolveComponentType(), descriptor.GetRenderMode(), descriptor.GetParameters())
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="alert alert-info">
+        <h4>No components configured</h4>
+        <p>This dynamic page has no components to display.</p>
+    </div>
+}
+
+@section Scripts {
+    <script src="_framework/blazor.server.js"></script>
+}
