@@ -1,0 +1,13 @@
+﻿@using PageBuilder.DynamicPages
+
+<div class="row">
+    @foreach (var child in ChildComponents)
+    {
+        <DynamicComponent Type="child.ResolveComponentType()" Parameters="child.GetParameters()" />
+    }
+</div>
+
+@code {
+    [Parameter]
+    public IList<ComponentDescriptor> ChildComponents { get; set; } = new List<ComponentDescriptor>();
+}

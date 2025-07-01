@@ -1,0 +1,22 @@
+﻿<h3>Counter @(Count)</h3>
+
+<button class="btn btn-primary" onclick="@OnClicked">Increment</button>
+
+@code {
+    [Parameter]
+    public int Count { get; set; } = 0;
+
+    protected async Task OnClicked()
+    {
+        Count++;
+        _ = 1;
+        StateHasChanged();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Count = new Random().Next(1, 100);
+        
+        await base.OnInitializedAsync();
+    }
+}
