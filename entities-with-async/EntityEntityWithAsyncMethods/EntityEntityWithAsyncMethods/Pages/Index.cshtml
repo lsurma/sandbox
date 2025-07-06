@@ -1,0 +1,82 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "EF Core Async Demo";
+}
+
+<div class="container">
+    <h1 class="display-4">EF Core Async Methods Demo</h1>
+    
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Active Users (@Model.ActiveUsers.Count)</h5>
+                </div>
+                <div class="card-body">
+                    @foreach (var user in Model.ActiveUsers.Take(5))
+                    {
+                        <div class="mb-2">
+                            <strong>@user.Name</strong><br>
+                            <small class="text-muted">@user.Email</small>
+                        </div>
+                    }
+                    @if (Model.ActiveUsers.Count > 5)
+                    {
+                        <small class="text-muted">... and @(Model.ActiveUsers.Count - 5) more</small>
+                    }
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Categories (@Model.Categories.Count)</h5>
+                </div>
+                <div class="card-body">
+                    @foreach (var category in Model.Categories)
+                    {
+                        <div class="mb-2">
+                            <strong>@category.Name</strong><br>
+                            <small class="text-muted">@category.Products.Count products</small>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Total Revenue</h5>
+                </div>
+                <div class="card-body">
+                    <h3 class="text-success">$@Model.TotalRevenue.ToString("N2")</h3>
+                    <small class="text-muted">Based on current inventory</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mt-4">
+        <h3>Async Methods Available</h3>
+        <ul class="list-group">
+            <li class="list-group-item">
+                <strong>GetActiveUsersAsync()</strong> - Returns all active users
+            </li>
+            <li class="list-group-item">
+                <strong>GetProductsByCategoryAsync(categoryId)</strong> - Returns products by category with includes
+            </li>
+            <li class="list-group-item">
+                <strong>GetUserWithProductsAsync(userId)</strong> - Returns user with their products and categories
+            </li>
+            <li class="list-group-item">
+                <strong>GetTotalRevenueAsync()</strong> - Calculates total revenue from all products
+            </li>
+            <li class="list-group-item">
+                <strong>GetCategoriesWithProductCountAsync()</strong> - Returns categories with product counts
+            </li>
+        </ul>
+    </div>
+</div>

@@ -1,0 +1,225 @@
+@page "/products-filtered"
+@using BlazorEfFiltering.Data
+@using BlazorEfFiltering.Data.Filtering
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext Context
+@rendermode InteractiveServer
+
+<PageTitle>Products with Dynamic Filters</PageTitle>
+
+<h1>Products with Dynamic Filters</h1>
+
+<div class="container-fluid">
+    @if (products == null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else
+    {
+        <!-- Filter Panel -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Filters</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- Name Filter -->
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Product Name</label>
+                        <div class="input-group">
+                            <select class="form-select" @bind="filters.NameFilter.Operation" @bind:after="ApplyFilters" style="max-width: 120px;">
+                                <option value="@TextFilterOperation.Contains">Contains</option>
+                                <option value="@TextFilterOperation.StartsWith">Starts With</option>
+                                <option value="@TextFilterOperation.EndsWith">Ends With</option>
+                                <option value="@TextFilterOperation.Equals">Equals</option>
+                            </select>
+                            <input type="text" class="form-control" placeholder="Enter name..." 
+                                   @bind="filters.NameFilter.Value" @bind:after="ApplyFilters" />
+                        </div>
+                    </div>
+
+                    <!-- Description Filter -->
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Description</label>
+                        <div class="input-group">
+                            <select class="form-select" @bind="filters.DescriptionFilter.Operation" @bind:after="ApplyFilters" style="max-width: 120px;">
+                                <option value="@TextFilterOperation.Contains">Contains</option>
+                                <option value="@TextFilterOperation.StartsWith">Starts With</option>
+                                <option value="@TextFilterOperation.EndsWith">Ends With</option>
+                            </select>
+                            <input type="text" class="form-control" placeholder="Enter description..." 
+                                   @bind="filters.DescriptionFilter.Value" @bind:after="ApplyFilters" />
+                        </div>
+                    </div>
+
+                    <!-- Category Filter -->
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Category</label>
+                        <div class="input-group">
+                            <select class="form-select" @bind="filters.CategoryFilter.Operation" @bind:after="ApplyFilters" style="max-width: 120px;">
+                                <option value="@TextFilterOperation.Contains">Contains</option>
+                                <option value="@TextFilterOperation.Equals">Equals</option>
+                            </select>
+                            <input type="text" class="form-control" placeholder="Enter category..." 
+                                   @bind="filters.CategoryFilter.Value" @bind:after="ApplyFilters" />
+                        </div>
+                    </div>
+
+                    <!-- Price Filter -->
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Price</label>
+                        <div class="input-group">
+                            <select class="form-select" @bind="filters.PriceFilter.Operation" @bind:after="ApplyFilters" style="max-width: 120px;">
+                                <option value="@NumberFilterOperation.Equals">Equals</option>
+                                <option value="@NumberFilterOperation.GreaterThan">Greater Than</option>
+                                <option value="@NumberFilterOperation.LessThan">Less Than</option>
+                                <option value="@NumberFilterOperation.GreaterThanOrEqual">Greater Than Or Equal</option>
+                                <option value="@NumberFilterOperation.LessThanOrEqual">Less Than Or Equal</option>
+                                <option value="@NumberFilterOperation.Between">Between</option>
+                            </select>
+                            <input type="number" class="form-control" placeholder="Price..." step="0.01"
+                                   @bind="filters.PriceFilter.Value" @bind:after="ApplyFilters" />
+                            @if (filters.PriceFilter.Operation == NumberFilterOperation.Between)
+                            {
+                                <input type="number" class="form-control" placeholder="To..." step="0.01"
+                                       @bind="filters.PriceFilter.ValueTo" @bind:after="ApplyFilters" />
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Stock Filter -->
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Stock</label>
+                        <div class="input-group">
+                            <select class="form-select" @bind="filters.StockFilter.Operation" @bind:after="ApplyFilters" style="max-width: 120px;">
+                                <option value="@NumberFilterOperation.Equals">Equals</option>
+                                <option value="@NumberFilterOperation.GreaterThan">Greater Than</option>
+                                <option value="@NumberFilterOperation.LessThan">Less Than</option>
+                                <option value="@NumberFilterOperation.GreaterThanOrEqual">Greater Than Or Equal</option>
+                                <option value="@NumberFilterOperation.LessThanOrEqual">Less Than Or Equal</option>
+                                <option value="@NumberFilterOperation.Between">Between</option>
+                            </select>
+                            <input type="number" class="form-control" placeholder="Stock..." 
+                                   @bind="stockValue" @bind:after="OnStockValueChanged" />
+                            @if (filters.StockFilter.Operation == NumberFilterOperation.Between)
+                            {
+                                <input type="number" class="form-control" placeholder="To..." 
+                                       @bind="stockValueTo" @bind:after="OnStockValueToChanged" />
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-secondary" @onclick="ClearFilters">Clear All</button>
+                            <button class="btn btn-primary" @onclick="ApplyFilters">Apply Filters</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Stock</th>
+                        <th>Created</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var product in filteredProducts)
+                    {
+                        <tr>
+                            <td>@product.Id</td>
+                            <td>@product.Name</td>
+                            <td>@product.Description</td>
+                            <td>
+                                <span class="badge bg-secondary">@product.Category</span>
+                            </td>
+                            <td>$@product.Price.ToString("F2")</td>
+                            <td>
+                                <span class="badge @GetStockBadgeClass(product.StockQuantity)">
+                                    @product.StockQuantity
+                                </span>
+                            </td>
+                            <td>@product.CreatedAt.ToString("yyyy-MM-dd")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-3">
+            <p>Showing @filteredProducts.Count() of @products.Count products</p>
+        </div>
+    }
+</div>
+
+@code {
+    private List<Product>? products;
+    private IEnumerable<Product> filteredProducts = new List<Product>();
+    private ProductFilters filters = new();
+    
+    // Helper properties for stock filter since we need to convert int to decimal
+    private int? stockValue;
+    private int? stockValueTo;
+
+    protected override async Task OnInitializedAsync()
+    {
+        products = await Context.Products.ToListAsync();
+        filteredProducts = products;
+    }
+
+    private async Task ApplyFilters()
+    {
+        if (products == null) return;
+
+        var query = Context.Products.AsQueryable();
+        
+        // Apply the dynamic filters using our extension method
+        // query = query.ApplyProductFilters(filters);
+        query = query.Where(p => p.Name.Contains("p"));
+        filteredProducts = await query.ToListAsync();
+        StateHasChanged();
+    }
+
+    private void OnStockValueChanged()
+    {
+        filters.StockFilter.Value = stockValue;
+        ApplyFilters();
+    }
+
+    private void OnStockValueToChanged()
+    {
+        filters.StockFilter.ValueTo = stockValueTo;
+        ApplyFilters();
+    }
+
+    private void ClearFilters()
+    {
+        filters.ResetAll();
+        stockValue = null;
+        stockValueTo = null;
+        filteredProducts = products ?? new List<Product>();
+        StateHasChanged();
+    }
+
+    private string GetStockBadgeClass(int stock)
+    {
+        return stock switch
+        {
+            <= 10 => "bg-danger",
+            <= 20 => "bg-warning",
+            _ => "bg-success"
+        };
+    }
+}

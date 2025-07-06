@@ -1,0 +1,155 @@
+@page
+@model UserWrapperModel
+@{
+    ViewData["Title"] = "User Wrapper Demo";
+}
+
+<div class="container">
+    <h1 class="display-4">User Wrapper Demo</h1>
+    <p class="lead">Demonstrating UserWrapper with async methods and dependency injection</p>
+
+    @if (Model.SelectedUserWrapper != null)
+    {
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>User Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Name:</strong> @Model.SelectedUserWrapper.Name</p>
+                        <p><strong>Email:</strong> @Model.SelectedUserWrapper.Email</p>
+                        <p><strong>Created:</strong> @Model.SelectedUserWrapper.CreatedAt.ToString("yyyy-MM-dd")</p>
+                        <p><strong>Status:</strong> 
+                            <span class="badge @(Model.SelectedUserWrapper.IsActive ? "bg-success" : "bg-secondary")">
+                                @(Model.SelectedUserWrapper.IsActive ? "Active" : "Inactive")
+                            </span>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>User Statistics</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Total Products:</strong> @Model.ProductCount</p>
+                        <p><strong>Total Revenue:</strong> $@Model.TotalRevenue.ToString("N2")</p>
+                        <p><strong>Average Price:</strong> $@Model.AveragePrice.ToString("N2")</p>
+                        <p><strong>Has Stock:</strong> 
+                            <span class="badge @(Model.HasStock ? "bg-success" : "bg-warning")">
+                                @(Model.HasStock ? "Yes" : "No")
+                            </span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                @if (Model.MostExpensiveProduct != null)
+                {
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5>Most Expensive Product</h5>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>@Model.MostExpensiveProduct.Name</strong></p>
+                            <p>Price: $@Model.MostExpensiveProduct.Price.ToString("N2")</p>
+                            <p>Category: @Model.MostExpensiveProduct.Category.Name</p>
+                            <p>Stock: @Model.MostExpensiveProduct.Stock</p>
+                        </div>
+                    </div>
+                }
+
+                @if (Model.LatestProduct != null)
+                {
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5>Latest Product</h5>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>@Model.LatestProduct.Name</strong></p>
+                            <p>Price: $@Model.LatestProduct.Price.ToString("N2")</p>
+                            <p>Category: @Model.LatestProduct.Category.Name</p>
+                            <p>Created: @Model.LatestProduct.CreatedAt.ToString("yyyy-MM-dd")</p>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        @if (Model.ProductsByCategory.Any())
+        {
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Products by Category</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        @foreach (var category in Model.ProductsByCategory)
+                        {
+                            <div class="col-md-4 mb-2">
+                                <div class="d-flex justify-content-between">
+                                    <span>@category.Key</span>
+                                    <span class="badge bg-primary">@category.Value</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (Model.LowStockProducts.Any())
+        {
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Low Stock Products (≤ 10)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Category</th>
+                                    <th>Stock</th>
+                                    <th>Price</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var product in Model.LowStockProducts)
+                                {
+                                    <tr>
+                                        <td>@product.Name</td>
+                                        <td>@product.Category.Name</td>
+                                        <td><span class="badge bg-warning">@product.Stock</span></td>
+                                        <td>$@product.Price.ToString("N2")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+
+    <div class="mt-4">
+        <h3>Available Users</h3>
+        <div class="row">
+            @foreach (var user in Model.AllUserWrappers)
+            {
+                <div class="col-md-4 mb-3">
+                    <div class="card @(user.Id == Model.SelectedUserWrapper?.Id ? "border-primary" : "")">
+                        <div class="card-body">
+                            <h6 class="card-title">@user.Name</h6>
+                            <p class="card-text">@user.Email</p>
+                            <a href="?userId=@user.Id" class="btn btn-sm btn-outline-primary">View Details</a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>

@@ -1,0 +1,224 @@
+@page "/products"
+@using BlazorEfFiltering.Data
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext Context
+@rendermode InteractiveServer
+
+<PageTitle>Products</PageTitle>
+
+<h1>Products</h1>
+
+<div class="container-fluid">
+    @if (products == null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else
+    {
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <input type="text" class="form-control" placeholder="Search products..." 
+                       @bind="searchTerm" @onkeyup="FilterProducts" />
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" @bind="selectedCategory" @bind:after="FilterProducts">
+                    <option value="">All Categories</option>
+                    @foreach (var category in categories)
+                    {
+                        <option value="@category">@category</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" @bind="sortBy" @bind:after="FilterProducts">
+                    <option value="name">Sort by Name</option>
+                    <option value="price">Sort by Price</option>
+                    <option value="category">Sort by Category</option>
+                    <option value="stock">Sort by Stock</option>
+                    <option value="created">Sort by Created Date</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Stock</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var product in filteredProducts)
+                    {
+                        <tr>
+                            <td>@product.Id</td>
+                            <td>@product.Name</td>
+                            <td>@product.Description</td>
+                            <td>
+                                <span class="badge bg-secondary">@product.Category</span>
+                            </td>
+                            <td>$@product.Price.ToString("F2")</td>
+                            <td>
+                                <span class="badge @GetStockBadgeClass(product.StockQuantity)">
+                                    @product.StockQuantity
+                                </span>
+                            </td>
+                            <td>@product.CreatedAt.ToString("yyyy-MM-dd")</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-info" @onclick="() => ShowOrderHistory(product.Id)">
+                                    Order History
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-3">
+            <p>Showing @filteredProducts.Count() of @products.Count products</p>
+        </div>
+    }
+</div>
+
+@if (selectedProductOrders != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Order History for @selectedProductOrders.First().Product.Name</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    @if (selectedProductOrders.Any())
+                    {
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Customer</th>
+                                    <th>Order Date</th>
+                                    <th>Quantity</th>
+                                    <th>Unit Price</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var orderItem in selectedProductOrders)
+                                {
+                                    <tr>
+                                        <td>@orderItem.OrderId</td>
+                                        <td>@orderItem.Order.CustomerName</td>
+                                        <td>@orderItem.Order.OrderDate.ToString("yyyy-MM-dd")</td>
+                                        <td>@orderItem.Quantity</td>
+                                        <td>$@orderItem.UnitPrice.ToString("F2")</td>
+                                        <td>$@orderItem.TotalPrice.ToString("F2")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <p>No orders found for this product.</p>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseModal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Product>? products;
+    private IEnumerable<Product> filteredProducts = new List<Product>();
+    private List<string> categories = new();
+    private List<OrderItem>? selectedProductOrders;
+    
+    private string searchTerm = "";
+    private string selectedCategory = "";
+    private string sortBy = "name";
+
+    protected override async Task OnInitializedAsync()
+    {
+        products = await Context.Products
+            .Include(p => p.OrderItems)
+            .ThenInclude(oi => oi.Order)
+            .ToListAsync();
+        
+        categories = products.Select(p => p.Category).Distinct().OrderBy(c => c).ToList();
+        filteredProducts = products;
+        FilterProducts();
+    }
+
+    private void FilterProducts()
+    {
+        if (products == null) return;
+
+        var query = products.AsEnumerable();
+
+        // Apply search filter
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            query = query.Where(p => 
+                p.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                p.Description.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+        }
+
+        // Apply category filter
+        if (!string.IsNullOrWhiteSpace(selectedCategory))
+        {
+            query = query.Where(p => p.Category == selectedCategory);
+        }
+
+        // Apply sorting
+        query = sortBy switch
+        {
+            "price" => query.OrderBy(p => p.Price),
+            "category" => query.OrderBy(p => p.Category).ThenBy(p => p.Name),
+            "stock" => query.OrderByDescending(p => p.StockQuantity),
+            "created" => query.OrderByDescending(p => p.CreatedAt),
+            _ => query.OrderBy(p => p.Name)
+        };
+
+        filteredProducts = query.ToList();
+        StateHasChanged();
+    }
+
+    private string GetStockBadgeClass(int stock)
+    {
+        return stock switch
+        {
+            <= 10 => "bg-danger",
+            <= 20 => "bg-warning",
+            _ => "bg-success"
+        };
+    }
+
+    private async Task ShowOrderHistory(int productId)
+    {
+        selectedProductOrders = await Context.OrderItems
+            .Include(oi => oi.Order)
+            .Include(oi => oi.Product)
+            .Where(oi => oi.ProductId == productId)
+            .OrderByDescending(oi => oi.Order.OrderDate)
+            .ToListAsync();
+        StateHasChanged();
+    }
+
+    private void CloseModal()
+    {
+        selectedProductOrders = null;
+        StateHasChanged();
+    }
+}

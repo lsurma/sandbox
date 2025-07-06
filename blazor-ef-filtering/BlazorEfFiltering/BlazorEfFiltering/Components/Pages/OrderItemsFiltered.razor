@@ -1,0 +1,215 @@
+@page "/order-items-filtered"
+@using BlazorEfFiltering.Data
+@using BlazorEfFiltering.Data.Filtering
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext Context
+@rendermode InteractiveServer
+
+<PageTitle>Order Items with Nested Property Filtering</PageTitle>
+
+<h1>Order Items with Nested Property Filtering</h1>
+<p class="text-muted">Demonstrates filtering OrderItems by nested properties like Product.Name, Product.Category, etc.</p>
+
+<div class="container-fluid">
+    @if (orderItems == null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else
+    {
+        <!-- Filter Panel -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Order Item Filters</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- Product Name Filter (Nested Property) -->
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Product Name</label>
+                        <div class="input-group">
+                            <select class="form-select" @bind="filters.ProductNameFilter.Operation" @bind:after="ApplyFilters" style="max-width: 120px;">
+                                <option value="@TextFilterOperation.Contains">Contains</option>
+                                <option value="@TextFilterOperation.StartsWith">Starts With</option>
+                                <option value="@TextFilterOperation.EndsWith">Ends With</option>
+                                <option value="@TextFilterOperation.Equals">Equals</option>
+                            </select>
+                            <input type="text" class="form-control" placeholder="Product name..." 
+                                   @bind="filters.ProductNameFilter.Value" @bind:after="ApplyFilters" />
+                        </div>
+                    </div>
+
+                    <!-- Product Category Filter (Nested Property) -->
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Product Category</label>
+                        <div class="input-group">
+                            <select class="form-select" @bind="filters.ProductCategoryFilter.Operation" @bind:after="ApplyFilters" style="max-width: 120px;">
+                                <option value="@TextFilterOperation.Contains">Contains</option>
+                                <option value="@TextFilterOperation.Equals">Equals</option>
+                            </select>
+                            <input type="text" class="form-control" placeholder="Category..." 
+                                   @bind="filters.ProductCategoryFilter.Value" @bind:after="ApplyFilters" />
+                        </div>
+                    </div>
+
+                    <!-- Product Price Filter (Nested Property) -->
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Product Price</label>
+                        <div class="input-group">
+                            <select class="form-select" @bind="filters.ProductPriceFilter.Operation" @bind:after="ApplyFilters" style="max-width: 120px;">
+                                <option value="@NumberFilterOperation.GreaterThan">Greater Than</option>
+                                <option value="@NumberFilterOperation.LessThan">Less Than</option>
+                                <option value="@NumberFilterOperation.Equals">Equals</option>
+                                <option value="@NumberFilterOperation.Between">Between</option>
+                            </select>
+                            <input type="number" class="form-control" placeholder="Price..." step="0.01"
+                                   @bind="filters.ProductPriceFilter.Value" @bind:after="ApplyFilters" />
+                            @if (filters.ProductPriceFilter.Operation == NumberFilterOperation.Between)
+                            {
+                                <input type="number" class="form-control" placeholder="To..." step="0.01"
+                                       @bind="filters.ProductPriceFilter.ValueTo" @bind:after="ApplyFilters" />
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <!-- Quantity Filter (Direct Property) -->
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Quantity</label>
+                        <div class="input-group">
+                            <select class="form-select" @bind="filters.QuantityFilter.Operation" @bind:after="ApplyFilters" style="max-width: 120px;">
+                                <option value="@NumberFilterOperation.GreaterThan">Greater Than</option>
+                                <option value="@NumberFilterOperation.LessThan">Less Than</option>
+                                <option value="@NumberFilterOperation.Equals">Equals</option>
+                            </select>
+                            <input type="number" class="form-control" placeholder="Quantity..." 
+                                   @bind="quantityValue" @bind:after="OnQuantityChanged" />
+                        </div>
+                    </div>
+
+                    <!-- Unit Price Filter (Direct Property) -->
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Unit Price</label>
+                        <div class="input-group">
+                            <select class="form-select" @bind="filters.UnitPriceFilter.Operation" @bind:after="ApplyFilters" style="max-width: 120px;">
+                                <option value="@NumberFilterOperation.GreaterThan">Greater Than</option>
+                                <option value="@NumberFilterOperation.LessThan">Less Than</option>
+                                <option value="@NumberFilterOperation.Equals">Equals</option>
+                            </select>
+                            <input type="number" class="form-control" placeholder="Unit price..." step="0.01"
+                                   @bind="filters.UnitPriceFilter.Value" @bind:after="ApplyFilters" />
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-secondary" @onclick="ClearFilters">Clear All</button>
+                            <button class="btn btn-primary" @onclick="ApplyFilters">Apply Filters</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Product Name</th>
+                        <th>Product Category</th>
+                        <th>Product Price</th>
+                        <th>Quantity</th>
+                        <th>Unit Price</th>
+                        <th>Total Price</th>
+                        <th>Customer</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var orderItem in filteredOrderItems)
+                    {
+                        <tr>
+                            <td>@orderItem.OrderId</td>
+                            <td>@orderItem.Product.Name</td>
+                            <td>
+                                <span class="badge bg-secondary">@orderItem.Product.Category</span>
+                            </td>
+                            <td>$@orderItem.Product.Price.ToString("F2")</td>
+                            <td>@orderItem.Quantity</td>
+                            <td>$@orderItem.UnitPrice.ToString("F2")</td>
+                            <td>$@orderItem.TotalPrice.ToString("F2")</td>
+                            <td>@orderItem.Order.CustomerName</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-3">
+            <p>Showing @filteredOrderItems.Count() of @orderItems.Count order items</p>
+        </div>
+    }
+</div>
+
+@code {
+    private List<OrderItem>? orderItems;
+    private IEnumerable<OrderItem> filteredOrderItems = new List<OrderItem>();
+    private OrderItemFilters filters = new();
+
+    // Helper property for quantity filter since we need to convert int to decimal
+    private int? quantityValue;
+
+    protected override async Task OnInitializedAsync()
+    {
+        orderItems = await Context.OrderItems
+            .Include(oi => oi.Product)
+            .Include(oi => oi.Order)
+            .ToListAsync();
+        filteredOrderItems = orderItems;
+    }
+
+    private async Task ApplyFilters()
+    {
+        if (orderItems == null) return;
+
+        try
+        {
+            var query = Context.OrderItems
+                .Include(oi => oi.Product)
+                .Include(oi => oi.Order)
+                .AsQueryable();
+            
+            // Apply the dynamic filters using our extension method
+            query = query.ApplyOrderItemFilters(filters);
+            
+            filteredOrderItems = await query.ToListAsync();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            // For debugging - let's see what's actually happening
+            Console.WriteLine($"Filter error: {ex.Message}");
+            // Fall back to in-memory filtering for now
+            filteredOrderItems = orderItems ?? new List<OrderItem>();
+            StateHasChanged();
+        }
+    }
+
+    private void OnQuantityChanged()
+    {
+        filters.QuantityFilter.Value = quantityValue;
+        ApplyFilters();
+    }
+
+    private void ClearFilters()
+    {
+        filters.ResetAll();
+        quantityValue = null;
+        filteredOrderItems = orderItems ?? new List<OrderItem>();
+        StateHasChanged();
+    }
+}

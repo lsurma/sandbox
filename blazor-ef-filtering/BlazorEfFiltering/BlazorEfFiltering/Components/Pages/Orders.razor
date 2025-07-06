@@ -1,0 +1,136 @@
+@page "/orders"
+@using BlazorEfFiltering.Data
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext Context
+@rendermode InteractiveServer
+
+<PageTitle>Orders</PageTitle>
+
+<h1>Orders</h1>
+
+<div class="container-fluid">
+    @if (orders == null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Customer</th>
+                        <th>Email</th>
+                        <th>Order Date</th>
+                        <th>Status</th>
+                        <th>Total Amount</th>
+                        <th>Items</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var order in orders)
+                    {
+                        <tr>
+                            <td>@order.Id</td>
+                            <td>@order.CustomerName</td>
+                            <td>@order.CustomerEmail</td>
+                            <td>@order.OrderDate.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td>
+                                <span class="badge @GetStatusBadgeClass(order.Status)">
+                                    @order.Status
+                                </span>
+                            </td>
+                            <td>$@order.TotalAmount.ToString("F2")</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" @onclick="() => ToggleOrderItems(order.Id)">
+                                    @if (expandedOrders.Contains(order.Id))
+                                    {
+                                        <span>Hide Items</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Show Items (@order.OrderItems.Count)</span>
+                                    }
+                                </button>
+                            </td>
+                        </tr>
+                        @if (expandedOrders.Contains(order.Id))
+                        {
+                            <tr>
+                                <td colspan="7">
+                                    <div class="ps-4">
+                                        <h6>Order Items:</h6>
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Product</th>
+                                                    <th>Quantity</th>
+                                                    <th>Unit Price</th>
+                                                    <th>Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var item in order.OrderItems)
+                                                {
+                                                    <tr>
+                                                        <td>@item.Product.Name</td>
+                                                        <td>@item.Quantity</td>
+                                                        <td>$@item.UnitPrice.ToString("F2")</td>
+                                                        <td>$@item.TotalPrice.ToString("F2")</td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                        <div class="mt-2">
+                                            <strong>Shipping Address:</strong> @order.ShippingAddress
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private List<Order>? orders;
+    private HashSet<int> expandedOrders = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        orders = await Context.Orders
+            .Include(o => o.OrderItems)
+            .ThenInclude(oi => oi.Product)
+            .OrderByDescending(o => o.OrderDate)
+            .ToListAsync();
+    }
+
+    private void ToggleOrderItems(int orderId)
+    {
+        if (expandedOrders.Contains(orderId))
+        {
+            expandedOrders.Remove(orderId);
+        }
+        else
+        {
+            expandedOrders.Add(orderId);
+        }
+    }
+
+    private string GetStatusBadgeClass(string status)
+    {
+        return status switch
+        {
+            "Pending" => "bg-warning",
+            "Processing" => "bg-info",
+            "Shipped" => "bg-primary",
+            "Delivered" => "bg-success",
+            "Cancelled" => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+}

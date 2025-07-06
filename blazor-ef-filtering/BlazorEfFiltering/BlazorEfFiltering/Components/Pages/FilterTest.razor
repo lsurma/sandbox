@@ -1,0 +1,110 @@
+@page "/filter-test"
+@using BlazorEfFiltering.Data
+@using BlazorEfFiltering.Data.Filtering
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext Context
+@rendermode InteractiveServer
+
+<PageTitle>Filter Test</PageTitle>
+
+<h1>Filter Test</h1>
+
+<div class="container-fluid">
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <label class="form-label">Product Name Filter</label>
+                    <input type="text" class="form-control" placeholder="Enter product name..." 
+                           @bind="testValue" />
+                    <button class="btn btn-primary mt-2" @onclick="TestFilter">Test Filter</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger">
+            <strong>Error:</strong> @errorMessage
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(expressionInfo))
+    {
+        <div class="alert alert-info">
+            <strong>Generated Expression:</strong> @expressionInfo
+        </div>
+    }
+
+    @if (results != null)
+    {
+        <div class="alert alert-success">
+            <strong>Success!</strong> Found @results.Count results
+        </div>
+        
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>Product Name</th>
+                    <th>Quantity</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in results.Take(5))
+                {
+                    <tr>
+                        <td>@item.OrderId</td>
+                        <td>@item.Product.Name</td>
+                        <td>@item.Quantity</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private string testValue = "";
+    private string errorMessage = "";
+    private string expressionInfo = "";
+    private List<OrderItem>? results;
+
+    private async Task TestFilter()
+    {
+        errorMessage = "";
+        expressionInfo = "";
+        results = null;
+
+        try
+        {
+            // Create a simple filter
+            var filter = new OrderItemFilters.ProductName();
+            filter.Value = testValue;
+            filter.Operation = TextFilterOperation.Contains;
+
+            // Test expression building
+            var expression = filter.BuildExpression();
+            if (expression != null)
+            {
+                expressionInfo = expression.ToString();
+                
+                // Test with EF Core
+                var query = Context.OrderItems
+                    .Include(oi => oi.Product)
+                    .Where(expression);
+                
+                results = await query.ToListAsync();
+            }
+            else
+            {
+                expressionInfo = "No expression generated (empty value)";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.ToString();
+        }
+    }
+}
